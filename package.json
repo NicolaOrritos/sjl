@@ -1,0 +1,11 @@
+{
+    "name": "sjl",
+    "description": "Simple JSON Loader",
+    "version": "0.2.0",
+    "private": false,
+    "dependencies": {},
+    "scripts": {
+        "test": "./test.js"
+    }
+}
+
