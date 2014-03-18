@@ -1,8 +1,24 @@
 
 var fs = require("fs");
 
-module.exports = function(file, defaults)
+module.exports = function(file, defaults, options)
 {
+    var silent = false;
+    
+    if (options)
+    {
+        silent = (options.silent === true);
+    }
+    
+    
+    var log = console.log;
+    
+    if (silent)
+    {
+        log = function(message){};
+    }
+    
+    
     var result = undefined;
     
     if (file)
@@ -13,11 +29,11 @@ module.exports = function(file, defaults)
         }
         catch (err)
         {
-            console.log("Could not read file '%s'. %s", file, err);
+            log("Could not read file '%s'. %s", file, err);
             
             if (defaults)
             {
-                console.log("Using default values: '%s'", JSON.stringify(defaults));
+                log("Using default values: '%s'", JSON.stringify(defaults));
 
                 result = defaults;
             }
@@ -29,7 +45,7 @@ module.exports = function(file, defaults)
     }
     else if (defaults)
     {
-        console.log("No file provided. Using default values: '%s'", JSON.stringify(defaults));
+        log("No file provided. Using default values: '%s'", JSON.stringify(defaults));
                     
         result = defaults;
     }
