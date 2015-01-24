@@ -1,25 +1,47 @@
 #!/usr/bin/env node
 
-var sjconf = require("./index.js");
+var sjl = require("./index.js");
 var assert = require("assert");
 
-var CONF   = sjconf("not-found.conf", {"default": true});
-console.log('Loaded the following conf: %s', JSON.stringify(CONF));
+var data;
 
-assert.ok(CONF.default === true);
+sjl("not-found.conf", {"default": true})
+.then(function(result)
+{
+    data = result;
+    
+    console.log('Loaded the following data: %s', JSON.stringify(data));
+
+    assert.ok(data.default === true);
+    
+    
+    return sjl("simple.json", {"default": true});
+})
+.then(function(result2)
+{
+    data = result2;
+
+    console.log('Loaded the following data: %s', JSON.stringify(data));
+
+    assert.ok(data.simple === true);
 
 
-CONF = sjconf("simple.json", {"default": true});
-console.log('Loaded the following conf: %s', JSON.stringify(CONF));
-
-assert.ok(CONF.simple === true);
+    console.log("--------------------------------");
 
 
-console.log("--------------------------------");
+    return sjl("not-found.conf", {"default": true}, {"silent": true});
+})
+.then(function(result3)
+{
+    data = result3;
 
+    console.log('Loaded the following data: %s', JSON.stringify(data));
 
-CONF = sjconf("not-found.conf", {"default": true}, {"silent": true});
+    assert.ok(data.default === true);
+})
+.catch(function(err)
+{
+    console.log(err.toString());
 
-console.log('Loaded the following conf: %s', JSON.stringify(CONF));
-
-assert.ok(CONF.default === true);
+    assert.ok(false);
+});
