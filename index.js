@@ -1,58 +1,108 @@
+'use strict';
 
-var fs = require("fs");
+var P            = require('bluebird');
+var fs           = require('fs');
+var utils        = require('util');
+var EventEmitter = require('events').EventEmitter;
+
+
+function Doc(contents)
+{
+    var self = this;
+    
+    if (contents)
+    {
+        for (var field in contents)
+        {
+            if (field)
+            {
+                self[field] = contents[field];
+            }
+        }
+    }
+}
+
+utils.inherits(Doc, EventEmitter);
+
+
+function silentLogFunction()
+{}
+
 
 module.exports = function(file, defaults, options)
 {
-    var silent = false;
-    
-    if (options)
+    return new P(function(resolve, reject)
     {
-        silent = (options.silent === true);
-    }
-    
-    
-    var log = console.log;
-    
-    if (silent)
-    {
-        log = function(message){};
-    }
-    
-    
-    var result = undefined;
-    
-    if (file)
-    {
-        try
-        {
-            result = JSON.parse((fs.readFileSync(file)).toString());
-        }
-        catch (err)
-        {
-            log("Could not read file '%s'. %s", file, err);
-            
-            if (defaults)
-            {
-                log("Using default values: '%s'", JSON.stringify(defaults));
+        var result;
+        var silent     = false;
+        var autoreload = false;
 
-                result = defaults;
-            }
-            else
-            {
-                throw new Error("Could not read file and no default configuration provided");
-            }
+        if (options)
+        {
+            silent     = (options.silent     === true);
+            autoreload = (options.autoreload === true);
         }
-    }
-    else if (defaults)
-    {
-        log("No file provided. Using default values: '%s'", JSON.stringify(defaults));
+
+        var log = silent ? silentLogFunction : console.log;
+        
+
+        if (file)
+        {
+            fs.readFile(file, function(err, data)
+            {
+                if (err)
+                {
+                    log("Could not read file '%s'. %s", file, err);
+
+                    if (defaults)
+                    {
+                        log("Using default values: '%s'", JSON.stringify(defaults));
+
+                        result = new Doc(defaults);
+                        
+                        resolve(result);
+                    }
+                    else
+                    {
+                        reject(new Error("Could not read file and no default configuration provided"));
+                    }
+                }
+                else
+                {
+                    result = JSON.parse(data.toString());
+
+                    result = new Doc(result);
                     
-        result = defaults;
-    }
-    else
-    {
-        throw new Error("No file, nor default configuration provided");
-    }
-    
-    return result;
+                    resolve(result);
+
+                    if (autoreload)
+                    {
+                        fs.watch(file, {persistent: false}, function(event)
+                        {
+                            if (event === 'change')
+                            {
+                                fs.readFile(file, {encoding: 'utf8'}, function(err2, newData)
+                                {
+                                    if (err2)
+                                    {
+                                        result.emit('error', err2);
+                                    }
+                                    else
+                                    {
+                                        newData = new Doc(JSON.parse(newData));
+                                        
+                                        result.emit('change', newData);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        else
+        {
+            reject(new Error("No file and/or no default configuration provided"));
+        }
+    });
 };

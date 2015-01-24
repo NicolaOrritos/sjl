@@ -1,11 +1,16 @@
 {
     "name": "sjl",
     "description": "Simple JSON Loader",
-    "version": "0.4.0",
+    "version": "1.1.0",
     "private": false,
-    "dependencies": {},
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/NicolaOrritos/sjl"
+    },
+    "dependencies": {
+        "bluebird": "^2.8.2"
+    },
     "scripts": {
         "test": "./test.js"
     }
 }
-
