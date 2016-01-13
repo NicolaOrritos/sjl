@@ -1,6 +1,5 @@
 'use strict';
 
-var P            = require('bluebird');
 var fs           = require('fs');
 var utils        = require('util');
 var EventEmitter = require('events').EventEmitter;
@@ -8,15 +7,13 @@ var EventEmitter = require('events').EventEmitter;
 
 function Doc(contents)
 {
-    var self = this;
-    
     if (contents)
     {
         for (var field in contents)
         {
             if (field)
             {
-                self[field] = contents[field];
+                this[field] = contents[field];
             }
         }
     }
@@ -28,10 +25,15 @@ utils.inherits(Doc, EventEmitter);
 function silentLogFunction()
 {}
 
+function emptyCallback()
+{}
 
-module.exports = function(file, defaults, options)
+
+module.exports = function(file, defaults, options, callback)
 {
-    return new P(function(resolve, reject)
+    callback = callback || emptyCallback;
+
+    return new Promise((resolve, reject) =>
     {
         var result;
         var silent     = false;
@@ -44,11 +46,11 @@ module.exports = function(file, defaults, options)
         }
 
         var log = silent ? silentLogFunction : console.log;
-        
+
 
         if (file)
         {
-            fs.readFile(file, function(err, data)
+            fs.readFile(file, (err, data) =>
             {
                 if (err)
                 {
@@ -59,12 +61,18 @@ module.exports = function(file, defaults, options)
                         log("Using default values: '%s'", JSON.stringify(defaults));
 
                         result = new Doc(defaults);
-                        
+
                         resolve(result);
+
+                        callback(null, result);
                     }
                     else
                     {
-                        reject(new Error("Could not read file and no default configuration provided"));
+                        var error = new Error("Could not read file and no default configuration provided");
+
+                        reject(error);
+
+                        callback(error);
                     }
                 }
                 else
@@ -72,16 +80,16 @@ module.exports = function(file, defaults, options)
                     result = JSON.parse(data.toString());
 
                     result = new Doc(result);
-                    
+
                     resolve(result);
 
                     if (autoreload)
                     {
-                        fs.watch(file, {persistent: false}, function(event)
+                        fs.watch(file, {persistent: false}, event =>
                         {
                             if (event === 'change')
                             {
-                                fs.readFile(file, {encoding: 'utf8'}, function(err2, newData)
+                                fs.readFile(file, {encoding: 'utf8'}, (err2, newData) =>
                                 {
                                     if (err2)
                                     {
@@ -90,19 +98,25 @@ module.exports = function(file, defaults, options)
                                     else
                                     {
                                         newData = new Doc(JSON.parse(newData));
-                                        
+
                                         result.emit('change', newData);
                                     }
                                 });
                             }
                         });
                     }
+
+                    callback(null, result);
                 }
             });
         }
         else
         {
-            reject(new Error("No file and/or no default configuration provided"));
+            var error = new Error("No file and/or no default configuration provided");
+
+            reject(error);
+
+            callback(error);
         }
     });
 };

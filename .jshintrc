@@ -11,6 +11,7 @@
     "boss": true,
     "eqnull": true,
     "node": true,
+    "esnext": true,
 
     "laxbreak": true
 }
