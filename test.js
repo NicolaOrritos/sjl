@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
-var sjl    = require('./index.js');
-var fs     = require('fs');
-var assert = require('assert');
+'use strict';
 
-var data;
+let sjl    = require('./index.js');
+let fs     = require('fs');
+let assert = require('assert');
+
+let data;
 
 sjl('not-found.conf', {"default": true})
-.then(function(result)
+.then( result =>
 {
     data = result;
 
@@ -18,7 +20,7 @@ sjl('not-found.conf', {"default": true})
 
     return sjl('simple.json', {"default": true});
 })
-.then(function(result2)
+.then( result2 =>
 {
     data = result2;
 
@@ -33,7 +35,7 @@ sjl('not-found.conf', {"default": true})
 
     return sjl('not-found.conf', {"default": true}, {"silent": true});
 })
-.then(function(result3)
+.then( result3 =>
 {
     data = result3;
 
@@ -44,7 +46,7 @@ sjl('not-found.conf', {"default": true})
 
     return sjl('simple.json', {"default": true}, {"autoreload": true});
 })
-.then(function(result4)
+.then( result4 =>
 {
     data = result4;
 
@@ -53,7 +55,7 @@ sjl('not-found.conf', {"default": true})
     assert.ok(data.simple  === true);
     assert.ok(data.default === false);
 
-    data.on('change', function(newData)
+    data.on('change', newData =>
     {
         console.log('Loaded the following new data upon file changes: %s', JSON.stringify(newData));
 
@@ -61,7 +63,7 @@ sjl('not-found.conf', {"default": true})
         assert.ok(newData.autoreloaded === true);
     });
 
-    data.on('error', function(err)
+    data.on('error',  err =>
     {
         console.log('Could not auto-reload new data upon file changes: %s', err);
 
@@ -71,7 +73,7 @@ sjl('not-found.conf', {"default": true})
     // Now we modify the file to trigger an auto-reload:
     fs.writeFileSync('simple.json', '{"simple": true, "default": false, "autoreloaded": true}');
 
-    setTimeout(function()
+    setTimeout( () =>
     {
         data.removeAllListeners();
 
@@ -80,7 +82,7 @@ sjl('not-found.conf', {"default": true})
 
     }, 250);
 })
-.catch(function(err)
+.catch( err =>
 {
     console.log(err.toString());
 

@@ -1,15 +1,22 @@
 'use strict';
 
-var fs           = require('fs');
-var utils        = require('util');
-var EventEmitter = require('events').EventEmitter;
+let fs           = require('fs');
+let utils        = require('util');
+let EventEmitter = require('events').EventEmitter;
+
+
+function silentLogFunction()
+{}
+
+function emptyCallback()
+{}
 
 
 function Doc(contents)
 {
     if (contents)
     {
-        for (var field in contents)
+        for (let field in contents)
         {
             if (field)
             {
@@ -22,22 +29,15 @@ function Doc(contents)
 utils.inherits(Doc, EventEmitter);
 
 
-function silentLogFunction()
-{}
-
-function emptyCallback()
-{}
-
-
 module.exports = function(file, defaults, options, callback)
 {
     callback = callback || emptyCallback;
 
-    return new Promise((resolve, reject) =>
+    return new Promise( (resolve, reject) =>
     {
-        var result;
-        var silent     = false;
-        var autoreload = false;
+        let result;
+        let silent     = false;
+        let autoreload = false;
 
         if (options)
         {
@@ -45,7 +45,7 @@ module.exports = function(file, defaults, options, callback)
             autoreload = (options.autoreload === true);
         }
 
-        var log = silent ? silentLogFunction : console.log;
+        let log = silent ? silentLogFunction : console.log;
 
 
         if (file)
@@ -68,7 +68,7 @@ module.exports = function(file, defaults, options, callback)
                     }
                     else
                     {
-                        var error = new Error("Could not read file and no default configuration provided");
+                        let error = new Error("Could not read file and no default configuration provided");
 
                         reject(error);
 
@@ -112,7 +112,7 @@ module.exports = function(file, defaults, options, callback)
         }
         else
         {
-            var error = new Error("No file and/or no default configuration provided");
+            let error = new Error("No file and/or no default configuration provided");
 
             reject(error);
 
