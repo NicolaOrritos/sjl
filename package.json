@@ -14,5 +14,10 @@
     },
     "scripts": {
         "test": "./test.js"
-    }
+    },
+    "files": [
+        "index.js",
+        "backends",
+        "lib"
+    ]
 }

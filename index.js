@@ -1,8 +1,5 @@
-'use strict';
 
-let fs           = require('fs');
-let utils        = require('util');
-let EventEmitter = require('events').EventEmitter;
+'use strict';
 
 
 function silentLogFunction()
@@ -11,22 +8,50 @@ function silentLogFunction()
 function emptyCallback()
 {}
 
+let log;
 
-function Doc(contents)
+let backends = [];
+
+function loadBackends()
 {
-    if (contents)
-    {
-        for (let field in contents)
-        {
-            if (field)
-            {
-                this[field] = contents[field];
-            }
-        }
-    }
+    // TODO
+    throw new Error('Not implemented yet');
 }
 
-utils.inherits(Doc, EventEmitter);
+loadBackends();
+
+function selectBackend(file)
+{
+    let result;
+
+    for (let backend of backends)
+    {
+        if (backend && backend.name && backend.protocol && backend.process)
+        {
+            log('Evaluating backend "%s", which has protocol "%s"...', backend.name, backend.protocol);
+
+            let protocolStart  = 0;
+            let protocolEnd    = file.indexOf('://');
+            let sourceProtocol = file.slice(protocolStart, protocolEnd);
+
+            log('Given source protocol is "%s"', sourceProtocol);
+
+            if (   sourceProtocol         === backend.protocol
+                || sourceProtocol + '://' === backend.protocol)
+            {
+                result = backend;
+            }
+        }
+        else
+        {
+            log('Skipping malformed backend "%s"...', JSON.stringify(backend));
+        }
+    }
+
+    log('Selected backend is: "%s"', result);
+
+    return result;
+}
 
 
 module.exports = function(file, defaults, options, callback)
@@ -35,7 +60,6 @@ module.exports = function(file, defaults, options, callback)
 
     return new Promise( (resolve, reject) =>
     {
-        let result;
         let silent     = false;
         let autoreload = false;
 
@@ -45,78 +69,29 @@ module.exports = function(file, defaults, options, callback)
             autoreload = (options.autoreload === true);
         }
 
-        let log = silent ? silentLogFunction : console.log;
+        log = silent ? silentLogFunction : console.log;
 
+        file = file.trim();
 
-        if (file)
+        // Find a suitable backend based on protocol:
+        let selectedBackend = selectBackend(file);
+
+        if (selectedBackend)
         {
-            fs.readFile(file, (err, data) =>
+            selectedBackend
+            .process(file, defaults, autoreload, log)
+            .then(function(result)
             {
-                if (err)
-                {
-                    log("Could not read file '%s'. %s", file, err);
+                resolve(result);
 
-                    if (defaults)
-                    {
-                        log("Using default values: '%s'", JSON.stringify(defaults));
+                callback(null, result);
+            })
+            .catch(function(err)
+            {
+                reject(err);
 
-                        result = new Doc(defaults);
-
-                        resolve(result);
-
-                        callback(null, result);
-                    }
-                    else
-                    {
-                        let error = new Error("Could not read file and no default configuration provided");
-
-                        reject(error);
-
-                        callback(error);
-                    }
-                }
-                else
-                {
-                    result = JSON.parse(data.toString());
-
-                    result = new Doc(result);
-
-                    resolve(result);
-
-                    if (autoreload)
-                    {
-                        fs.watch(file, {persistent: false}, event =>
-                        {
-                            if (event === 'change')
-                            {
-                                fs.readFile(file, {encoding: 'utf8'}, (err2, newData) =>
-                                {
-                                    if (err2)
-                                    {
-                                        result.emit('error', err2);
-                                    }
-                                    else
-                                    {
-                                        newData = new Doc(JSON.parse(newData));
-
-                                        result.emit('change', newData);
-                                    }
-                                });
-                            }
-                        });
-                    }
-
-                    callback(null, result);
-                }
+                callback(err);
             });
-        }
-        else
-        {
-            let error = new Error("No file and/or no default configuration provided");
-
-            reject(error);
-
-            callback(error);
         }
     });
 };
