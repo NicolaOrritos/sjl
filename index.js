@@ -50,7 +50,7 @@ module.exports = function(file, defaults, options, callback)
 
         if (file)
         {
-            fs.readFile(file, (err, data) =>
+            fs.readFile(file, {encoding: 'utf8'}, (err, data) =>
             {
                 if (err)
                 {
@@ -77,36 +77,44 @@ module.exports = function(file, defaults, options, callback)
                 }
                 else
                 {
-                    result = JSON.parse(data.toString());
-
-                    result = new Doc(result);
-
-                    resolve(result);
-
-                    if (autoreload)
+                    try
                     {
-                        fs.watch(file, {persistent: false}, event =>
+                        result = JSON.parse(data);
+                        result = new Doc(result);
+
+                        resolve(result);
+
+                        if (autoreload)
                         {
-                            if (event === 'change')
+                            fs.watch(file, {persistent: false}, event =>
                             {
-                                fs.readFile(file, {encoding: 'utf8'}, (err2, newData) =>
+                                if (event === 'change')
                                 {
-                                    if (err2)
+                                    fs.readFile(file, {encoding: 'utf8'}, (err2, newData) =>
                                     {
-                                        result.emit('error', err2);
-                                    }
-                                    else
-                                    {
-                                        newData = new Doc(JSON.parse(newData));
+                                        if (err2)
+                                        {
+                                            result.emit('error', err2);
+                                        }
+                                        else
+                                        {
+                                            newData = new Doc(JSON.parse(newData));
 
-                                        result.emit('change', newData);
-                                    }
-                                });
-                            }
-                        });
+                                            result.emit('change', newData);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                        callback(null, result);
                     }
+                    catch (err)
+                    {
+                        reject(err);
 
-                    callback(null, result);
+                        callback(err);
+                    }
                 }
             });
         }
